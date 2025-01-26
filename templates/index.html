@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Location Sender</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #006699;
+        }
+        #status {
+            margin-top: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Location Sender</h1>
+        <button onclick="getAndSendLocation()">Send My Location</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function updateStatus(message) {
+            document.getElementById('status').innerText = message;
+        }
+
+        function getAndSendLocation() {
+            updateStatus('Getting location...');
+            
+            if (!navigator.geolocation) {
+                updateStatus('Geolocation is not supported by your browser');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    updateStatus('Location obtained, sending to Telegram...');
+                    
+                    fetch('/send-location', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            updateStatus('Location sent successfully! Check your Telegram.');
+                        } else {
+                            updateStatus('Error: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        updateStatus('Error sending location: ' + error);
+                    });
+                },
+                function(error) {
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            updateStatus('Please allow location access to use this feature');
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            updateStatus('Location information is unavailable');
+                            break;
+                        case error.TIMEOUT:
+                            updateStatus('Location request timed out');
+                            break;
+                        default:
+                            updateStatus('An unknown error occurred');
+                            break;
+                    }
+                }
+            );
+        }
+    </script>
+</body>
+</html>
